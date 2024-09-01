@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GGYM Reservation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #top-section {
+      flex: 1;
+      display: flex;
+      border-bottom: 2px solid #333;
+      position: relative;
+      z-index: 2;
+    }
+    .vertical-section {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-right: 1px solid #333;
+      position: relative;
+    }
+    .vertical-section:last-child {
+      border-right: none;
+    }
+    #bottom-section {
+      flex: 1.5;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+    #beacon {
+      width: 200px;
+      height: 200px;
+      background-color: rgba(135, 206, 250, 0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: relative;
+    }
+    .person {
+      width: 50px;
+      height: 50px;
+      cursor: grab;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.3s ease;
+      position: absolute;
+    }
+    .uuid-label, .name-label {
+      font-size: 12px;
+      background-color: white;
+      border: 1px solid black;
+      padding: 2px;
+      margin-bottom: 5px;
+      text-align: center;
+    }
+    #reserveBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    img {
+      width: 100%;
+      height: 100%;
+    }
+    .selected {
+      background-color: rgb(255, 242, 0);
+    }
+    #schedule {
+      width: 80%;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+    .time-slot {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px;
+      border-bottom: 1px solid #ccc;
+    }
+    .reserved {
+      color: white;
+    }
+    #treadmill {
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .time-bar {
+      width: 100%;
+      height: 20px;
+      background-color: #f0f0f0;
+      position: relative;
+      margin-top: 10px;
+    }
+    .reserved-bar {
+      position: absolute;
+      height: 100%;
+    }
+    .reservation-time {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .reservation-details {
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: left;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="top-section">
+    <div class="vertical-section">
+      <!-- 왼쪽 구분선 -->
+    </div>
+    <div class="vertical-section">
+      <div id="beacon">
+        <div class="uuid-label">UUID: 13</div>
+        <img src="https://img.icons8.com/ios-filled/50/000000/rfid-signal.png" alt="Beacon">
+        <div id="personA" class="person" data-name="Person A" data-uuid="13" style="top: 20%; left: 20%;">
+          <div class="name-label">Person A</div>
+          <div class="uuid-label">UUID: 13</div>
+          <img src="https://img.icons8.com/ios-filled/50/000000/user-male-circle.png" alt="Person A">
+        </div>
+        <div id="personB" class="person" data-name="Person B" data-uuid="12" style="top: 20%; left: 50%;">
+          <div class="name-label">Person B</div>
+          <div class="uuid-label">UUID: 12</div>
+          <img src="https://img.icons8.com/ios-filled/50/000000/user-male-circle.png" alt="Person B">
+        </div>
+        <div id="personC" class="person" data-name="Person C" data-uuid="13" style="top: 20%; left: 80%;">
+          <div class="name-label">Person C</div>
+          <div class="uuid-label">UUID: 13</div>
+          <img src="https://img.icons8.com/ios-filled/50/000000/user-male-circle.png" alt="Person C">
+        </div>
+      </div>
+    </div>
+    <div class="vertical-section">
+      <!-- 오른쪽 구분선 -->
+    </div>
+  </div>
+
+  <div id="bottom-section">
+    <h1>런닝머신 예약 시스템</h1>
+    <div id="schedule">
+      <label for="startTime">예약 시작 시간 (예: 2300):</label>
+      <input type="text" id="startTime" placeholder="예: 2300" maxlength="4">
+      <label for="endTime">예약 종료 시간 (예: 2330):</label>
+      <input type="text" id="endTime" placeholder="예: 2330" maxlength="4">
+      <button id="reserveBtn">예약</button>
+    </div>
+
+    <div id="treadmill">
+      <h2>런닝머신 예약 현황</h2>
+      <div class="time-bar">
+        <!-- 예약된 시간 막대가 여기에 추가됩니다 -->
+      </div>
+      <div class="reservation-time">
+        <span>00:00</span>
+        <span>12:00</span>
+        <span>23:59</span>
+      </div>
+    </div>
+    <div class="reservation-details">
+      <h3>예약 내역</h3>
+      <ul id="reservationList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const reservations = [
+      { name: 'Person A', uuid: '13', startTime: '1300', endTime: '1400' } // 기존 예약 내역
+    ];
+
+    const reserveBtn = document.getElementById('reserveBtn');
+    const persons = document.querySelectorAll('.person');
+    const beacon = document.getElementById('beacon');
+    const verticalSections = document.querySelectorAll('.vertical-section');
+    let isDragging = false;
+    let currentPerson = null;
+    let offsetX, offsetY;
+
+    const colors = {
+      'Person A': 'red',
+      'Person B': 'green',
+      'Person C': 'blue'
+    };
+
+    function isInsideVerticalSections(person) {
+      const personRect = person.getBoundingClientRect();
+      const leftBoundary = verticalSections[0].getBoundingClientRect().right;
+      const rightBoundary = verticalSections[2].getBoundingClientRect().left;
+
+      return personRect.right <= rightBoundary && personRect.left >= leftBoundary;
+    }
+
+    function updateReservations() {
+      reservations.forEach((reservation, index) => {
+        const person = Array.from(persons).find(p => p.dataset.name === reservation.name);
+        if (person && !isInsideVerticalSections(person)) {
+          reservations.splice(index, 1); // 예약 취소
+        }
+      });
+      displayReservations();
+    }
+
+    persons.forEach(person => {
+      person.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+
+        if (currentPerson) {
+          currentPerson.classList.remove('selected');
+        }
+        currentPerson = person;
+        currentPerson.classList.add('selected');
+        isDragging = true;
+
+        const rect = person.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+      });
+
+      person.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+      });
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging && currentPerson) {
+        const rect = beacon.getBoundingClientRect();
+        const newX = e.clientX - rect.left - offsetX;
+        const newY = e.clientY - rect.top - offsetY;
+
+        currentPerson.style.left = `${newX}px`;
+        currentPerson.style.top = `${newY}px`;
+
+        updateReservations();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      if (currentPerson) {
+        currentPerson.style.cursor = 'grab';
+      }
+    });
+
+    reserveBtn.addEventListener('click', () => {
+  if (!currentPerson) {
+    alert('사람을 선택하세요.');
+    return;
+  }
+
+  const personRect = currentPerson.getBoundingClientRect();
+  const beaconRect = beacon.getBoundingClientRect();
+
+  // person이 비콘 이미지 내부에 존재하는지 확인
+  const isInsideBeacon = (
+    personRect.left >= beaconRect.left &&
+    personRect.right <= beaconRect.right &&
+    personRect.top >= beaconRect.top &&
+    personRect.bottom <= beaconRect.bottom
+  );
+
+  if (!isInsideBeacon) {
+    alert('선택된 사람이 비콘 이미지 위에 존재하지 않습니다.');
+    return;
+  }
+
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
+
+  if (!isValidTime(startTime) || !isValidTime(endTime)) {
+    alert('시간 형식이 잘못되었습니다. 예: 1300');
+    return;
+  }
+
+  const overlap = reservations.some(reservation => {
+    return (
+      (startTime < reservation.endTime && endTime > reservation.startTime)
+    );
+  });
+
+  if (overlap) {
+    alert('이미 예약된 시간입니다. 다른 시간을 선택하세요.');
+  } else {
+    const selectedName = currentPerson.getAttribute('data-name');
+    const selectedUUID = currentPerson.getAttribute('data-uuid');
+    const beaconUUID = beacon.querySelector('.uuid-label').textContent.split(': ')[1];
+
+    if (selectedUUID !== beaconUUID) {
+      alert('UUID가 일치하지 않습니다.');
+      return;
+    }
+
+    reservations.push({ name: selectedName, uuid: selectedUUID, startTime, endTime });
+    displayReservations();
+    alert(`예약되었습니다: ${formatTime(startTime)} - ${formatTime(endTime)}`);
+  }
+});
+
+
+    function isValidTime(time) {
+      return /^\d{4}$/.test(time) && parseInt(time.slice(0, 2)) < 24 && parseInt(time.slice(2, 4)) < 60;
+    }
+
+    function displayReservations() {
+      const timeBar = document.querySelector('.time-bar');
+      const reservationList = document.getElementById('reservationList');
+      timeBar.innerHTML = '';
+      reservationList.innerHTML = '';
+
+      reservations.forEach(reservation => {
+        const startPercent = timeToPercent(reservation.startTime);
+        const endPercent = timeToPercent(reservation.endTime);
+        const reservedBar = document.createElement('div');
+        reservedBar.classList.add('reserved-bar');
+        reservedBar.style.left = `${startPercent}%`;
+        reservedBar.style.width = `${endPercent - startPercent}%`;
+        reservedBar.style.backgroundColor = colors[reservation.name] || 'gray';
+        timeBar.appendChild(reservedBar);
+
+        const listItem = document.createElement('li');
+        listItem.textContent = `${reservation.name} (UUID: ${reservation.uuid}) - ${formatTime(reservation.startTime)} ~ ${formatTime(reservation.endTime)}`;
+        reservationList.appendChild(listItem);
+      });
+    }
+
+    function timeToPercent(time) {
+      const hours = parseInt(time.slice(0, 2), 10);
+      const minutes = parseInt(time.slice(2, 4), 10);
+      return ((hours * 60 + minutes) / 1440) * 100;
+    }
+
+    function formatTime(time) {
+      const hours = time.slice(0, 2);
+      const minutes = time.slice(2, 4);
+      return `${hours}:${minutes}`;
+    }
+
+    displayReservations();
+  </script>
+
+</body>
+</html>
+
+       
